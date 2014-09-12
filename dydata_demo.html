@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+	<script src="js/webix.js" type="text/javascript"></script>
+	<link rel="STYLESHEET" type="text/css" href="cs/webix.css">
+	<title>Big Dataset. Dynamic Loading</title>
+</head>
+<body>
+	<h1>Dynamic loading, virtual scrolling</h1>
+	
+	<div id="data_container" style="width:1000px;height:392px;margin:20px"></div>
+	<br>
+	<script type="text/javascript" charset="utf-8">
+		webix.ui({
+			view:"dataview",
+			container:"data_container",
+			template:"<span class='webix_strong'>#id# </span>#name# <span class='webix_light'>#addr#</span>",
+			type: {
+				height: 60, width: 600
+			},
+			xCount:2,
+			url:"php/dydata_demo.php"
+		});
+	</script>
+
+</body>
+</html>
+

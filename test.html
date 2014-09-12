@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Loading from DB</title>
+		<link rel="stylesheet" href="css/webix.css" type="text/css" charset="utf-8">
+		<link href="skins/air.css" rel="stylesheet" type="text/css">
+		<script src="js/webix.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/util.js" type="text/javascript" charset="utf-8"></script>
+	<style>
+	    .highlight{
+	        background-color:#FFFFC8;
+	    }
+	    .total{
+	        background-color:#FFDDFF;
+	    }
+	</style>
+	<body>
+		<div id="inv"></div>
+		<div id='layout_div' ></div>
+
+		<div id="testB"></div>
+		<div id="testC"></div>
+
+		
+		<script type="text/javascript" charset="utf-8">
+			function mark_neg(value, config){
+			    if (value< 0)
+			        return { "background-color":"#FF88FF", "text-align":"right"};
+			    else{
+			    	return {"text-align":"right"};
+			    }
+			    return value;				
+			}
+
+			var data_inv = [
+							{id:RES, rowhd:"有主",std:0, nstd:0},
+							{id:AVA, rowhd:"無主",std:0, nstd:0}
+							];
+
+			var data_invfcst = [
+					{"id":FI,"title":"內需", "s1": 0, "s2":0, "s3":0, "s4":0, "s5":0,"s6":0,"s7":0,"s8":0,"total":0},
+					{"id":FO,"title":"外需", "s1": 0, "s2":0, "s3":0, "s4":0, "s5":0,"s6":0,"s7":0,"s8":0,"total":0},
+					{"id":AI,"title":"內配", "s1": 0, "s2":0, "s3":0, "s4":0, "s5":0,"s6":0,"s7":0,"s8":0,"total":0},
+					{"id":AO,"title":"外配", "s1": 0, "s2":0, "s3":0, "s4":0, "s5":0,"s6":0,"s7":0,"s8":0,"total":0},
+					{"id":NET,"title":"淨額", "s1": 0, "s2":0, "s3":0, "s4":0, "s5":0,"s6":0,"s7":0,"s8":0,"total":0}
+					];
+
+			var seasonHeader = getSeasonArr(8);
+
+			var invfcsttable = {
+				id:"ID_invfcsttable",
+				view:"datatable",
+			    scheme:{
+			        $change:function(item){
+			            if (item.id == NET)
+			            	item.$css = "total";
+			        }
+			    },				
+				columns:[
+					{ id:"title",header:" ", width:50},
+					{ id:"s1",	header:seasonHeader[0], width:80,cssFormat:mark_neg},
+					{ id:"s2",	header:seasonHeader[1], width:80, cssFormat:mark_neg},
+					{ id:"s3",	header:seasonHeader[2], width:80, cssFormat:mark_neg},
+					{ id:"s4",	header:seasonHeader[3], width:80, cssFormat:mark_neg},
+					{ id:"s5",	header:seasonHeader[4], width:80, cssFormat:mark_neg},
+					{ id:"s6",  header:seasonHeader[5], width:80, cssFormat:mark_neg},
+					{ id:"s7",	header:seasonHeader[6], width:80, cssFormat:mark_neg},
+					{ id:"s8",	header:seasonHeader[7], width:80, cssFormat:mark_neg},
+					{ id:"total", header:"合計", width:90, cssFormat:mark_neg},
+				],
+				on:{
+					onDataUpdate:function(id, data){
+						webix.message(data);
+					}
+				},
+				select:"cell",
+				data: data_invfcst
+			};
+
+			var plnpcodelist = {
+				rows:[
+					{
+						view:"datatable",
+						columns:[
+							{ id:"pcode",	header:["PCODE", {content:"textFilter"}], sort:"int"},
+							{ id:"pcname",	header:["Name",  {content:"textFilter"}], sort:"string"}
+						],
+						autowidth:true,
+						navigation:true,
+						select:"row",
+
+						on:{
+							onSelectChange:function(){
+								//var text = "SelectedID: "+grid.getSelectedId(true).join();
+								
+								var rowId = this.getSelectedId().row;
+								var item = this.getItem(rowId);
+
+								//document.getElementById('testB').innerHTML = rowId + " :: " + item["pcode"]+ " :: " + item["pcname"];
+								updateInvfcstTable(item["pcode"]);
+								updateInvTable(item["pcode"]);
+								updateProdPlanTable(item["pcode"]);
+								updateFcstTable(item["pcode"]);
+								updateAchTable(item["pcode"]);
+							},
+							onAfterLoad:function(){
+								//document.getElementById('testC').innerHTML = this.count();	
+							},
+					        onBeforeLoad:function(){
+					            this.showOverlay("資料讀取中...");
+					        },
+					        onAfterLoad:function(){
+					            this.hideOverlay();
+					        }							
+						},
+						url:"http://localhost/prodplan/php/pln_pcodelist.php"
+					}
+				]
+			};
+
+			var invtable ={
+				id:"ID_invtable",
+				view: "datatable",
+				width: 250,
+				columns:[
+						{id:"rowhd", width:50,header:""},
+						{id:"std", width:80, header:"標準品"},
+						{id:"nstd", width:80, header:"次級品"},
+				],
+				data: data_inv
+			};
+
+			var prodplantable = {
+				id:"ID_prodplantable",
+				view: "datatable",
+				editable:true,
+				editaction:"dblclick",
+				columns:[
+					{id:"plannum", header:"計畫編號", sort:"string"},
+					{id:"prodnum", header:"生產編", sort:"string"},
+					{id:"seednum", header:"原種", sort:"string"},
+					{id:"pcode", width: 70, header:"電編", sort:"string"},
+					{id:"pcname", header:"品名", sort:"string"},
+					{id:"yq", width: 80,header:"生效季", sort:"int"},
+					{id:"estdyq", width: 80,header:"交期季", sort:"int"},
+					{id:"site", width: 70, header:"產地", sort:"string"},
+					{id:"qty", width: 80,header:"數量KG", sort:"int",css:{"text-align":"right"}},
+					{id:"landsize", width: 80, header:"面積", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
+					{id:"curr", width: 50,header:"幣別", sort:"string"},
+					{id:"ref_cost", width: 80, header:"參考價", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
+					{id:"report1mon", width: 80,header:"月報", sort:"int", editor:"text",css:{"text-align":"center"}},
+					{id:"report1qty", width: 80,header:"報數量", sort:"int", editor:"text",css:{"text-align":"right"}},
+					{id:"report1ym", width: 80,header:"交期月", sort:"int", editor:"text",css:{"text-align":"center"}},
+					{id:"note", width: 480,header:"備註", editor:"popup"}
+				],
+				
+				//autoConfig:true,
+			    on:{
+			        onBeforeLoad:function(){
+			            this.showOverlay("資料讀取中...");
+			        },
+			        onAfterLoad:function(){
+			            this.hideOverlay();
+			        },
+			        onAfterEditStop:function(state, editor, ignoreUpdate){
+					    if(state.value != state.old){
+					    	var item = this.getItem(this.getSelectedId().row);		
+					        //webix.message("Cell value was changed to " + state.value);
+							webix.message("item " + "=" + item["plannum"]);
+							var param = {plannum:item["plannum"],
+										report1mon:item["report1mon"],
+										report1qty:item["report1qty"],
+										report1ym:item["report1ym"],
+										note:item["note"]
+										};
+							webix.ajax().sync().get("http://localhost/prodplan/php/updateVegeSeedProdPlanReport.php", param, function(response){
+								webix.message(response);
+							});							
+					    } 
+			        }
+			    },				
+				//autoconfig:true, //using input data field as column names
+				navigation:true,
+				select:"row",				
+				url:"http://localhost/prodplan/php/getVegeSeedProdPlan.php"
+			};
+
+			var fcsttable = {
+				id:"ID_fcsttable",
+				view: "datatable",
+				
+				columns:[
+					{id:"fcstid", width: 60,header:"編號", sort:"int"},
+					{id:"agentid", width: 80,header:"需求端", sort:"int"},
+					{id:"pcode", width: 70, header:"電編", sort:"string"},
+					{id:"pcname", header:"品名", sort:"string"},
+					{id:"yq", width: 80, header:"季", sort:"int"},
+					{id:"planqty", width: 80, header:"數量", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
+					{id:"class", width: 50,header:"類季", sort:"string"},
+					{id:"state", width: 70, header:"狀態", sort:"string"},
+					{id:"uprice", width: 80, header:"參考價", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
+					{id:"totalamt", width: 80, header:"總額", sort:"int",css:{"text-align":"right"}},
+					{id:"alloc", width: 80, header:"分配", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
+					{id:"accushp", width: 80, header:"累計出", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}}
+				],
+				
+				//autoConfig:true,
+			    on:{
+			        onBeforeLoad:function(){
+			            this.showOverlay("資料讀取中...");
+			        },
+			        onAfterLoad:function(){
+			            this.hideOverlay();
+			        }
+			    },				
+				//autoconfig:true, //using input data field as column names
+				navigation:true,
+				select:"row",				
+				url:"http://localhost/prodplan/php/getVegeSeedForecast.php"
+			};
+
+			var achtable = {
+				id:"ID_achtable",
+				view: "datatable",
+				
+				columns:[
+					{id:"pcode", width: 60,header:"電編", sort:"int"},
+					{id:"site", width: 80,header:"產地", sort:"string"},
+					{id:"yr", width: 70, header:"年度", sort:"int"},
+					{id:"sbkg", width: 100,header:"當年進貨Kg", sort:"int", css:{"text-align":"right"}},
+					{id:"pqty", width: 100, header:"計畫生產Kg", sort:"int", css:{"text-align":"right"}},
+					{id:"achrate", width: 80, header:"達成率%", sort:"int", css:{"text-align":"right"}}
+
+				],
+				
+				//autoConfig:true,
+			    on:{
+			        onBeforeLoad:function(){
+			            this.showOverlay("資料讀取中...");
+			        },
+			        onAfterLoad:function(){
+			            this.hideOverlay();
+			        }
+	        
+			    },				
+				//autoconfig:true, //using input data field as column names
+				navigation:true,
+				select:"row",				
+				url:"http://localhost/prodplan/php/getVegeSeedAchrate.php"
+			};
+			
+			var tabpanel = {
+				view:"tabview",
+    			animate:false,
+    			cells:[
+    				{header:"生產計劃", value:1, cols:[prodplantable]},
+    				{header:"預購明細", value:2,cols:[fcsttable]},
+    				{header:"歷年產地達成率", value:3,cols:[achtable]}
+    			]
+  
+
+			};
+
+
+			var ui ={
+				container:"layout_div",
+				rows:[
+					{type:"header", template:"Production Plan Review"},
+					{type:"space", height: 230,
+						cols:[plnpcodelist,
+							invtable,
+							invfcsttable,
+						]},
+					{view:"resizer"},
+					{type:"space", height: 280, 
+					  cols:[tabpanel]}
+					//{type:"space", body:tabpanel}
+				]
+			};
+
+			webix.ready(function(){
+				webix.ui(ui);
+			});
+
+			function updateInvTable(chosen_pcode){
+				data_inv[RES].std = 0;
+				data_inv[RES].nstd = 0;
+				data_inv[AVA].std = 0;
+				data_inv[AVA].nstd = 0;
+				var param = {pcode:chosen_pcode};
+				webix.ajax().sync().get("http://localhost/prodplan/php/getVegeSeedInventory.php", param, function(jsonresp){
+					var rsArr = JSON.parse(jsonresp);
+					for (var x=0; x < rsArr.length; x++){
+						var fcstobj = rsArr[x];
+						var resstd = Math.round(fcstobj.resstd);
+						var resnstd = Math.round(fcstobj.resnstd);
+						var avastd = Math.round(fcstobj.avastd);
+						var avanstd = Math.round(fcstobj.avanstd);
+
+						data_inv[RES].std = resstd;
+						data_inv[RES].nstd = resnstd;
+						data_inv[AVA].std = avastd;
+						data_inv[AVA].nstd = avanstd;
+					}
+				});
+
+				$$('ID_invtable').refresh(); 
+			}
+
+			function updateInvfcstTable(chosen_pcode){
+				//clean the array
+				
+				for (var x =0;x < 5; x++){
+					data_invfcst[x].s1 = 0;
+					data_invfcst[x].s2 = 0;
+					data_invfcst[x].s3 = 0;
+					data_invfcst[x].s4 = 0;
+					data_invfcst[x].s5 = 0;
+					data_invfcst[x].s6 = 0;
+					data_invfcst[x].s7 = 0;
+					data_invfcst[x].s8 = 0;
+				}
+
+				var param = {pcode:chosen_pcode};
+				webix.ajax().sync().get("http://localhost/prodplan/php/getDomesticForecast.php", param, function(jsonresp){
+					var rsArr = JSON.parse(jsonresp);
+					//webix.message(rsArr[2].period);
+					for (var x=0; x < rsArr.length; x++){
+						var fcstobj = rsArr[x];
+						var idx = period2seasonIndex(fcstobj.period);
+						var planqty = Math.round(fcstobj.splanqty);
+						var allocqty = Math.round(fcstobj.salloc);
+						var shpqty = Math.round(fcstobj.sshp);
+						var sallocqty = allocqty + shpqty;
+						
+						//handle FO
+						switch (idx){
+							case 0: data_invfcst[FO].s1 = planqty; break;
+							case 1:	data_invfcst[FO].s2 = planqty; break;
+							case 2:	data_invfcst[FO].s3 = planqty; break;
+							case 3:	data_invfcst[FO].s4 = planqty; break;
+							case 4:	data_invfcst[FO].s5 = planqty; break;
+							case 5:	data_invfcst[FO].s6 = planqty; break;
+							case 6:	data_invfcst[FO].s7 = planqty; break;
+							case 7:	data_invfcst[FO].s8 = planqty; break;
+						}
+
+						//handle AO
+						if (planqty > sallocqty){
+							switch (idx){
+								case 0: data_invfcst[AO].s1 = planqty - sallocqty; break;
+								case 1:	data_invfcst[AO].s2 = planqty - sallocqty; break;
+								case 2:	data_invfcst[AO].s3 = planqty - sallocqty; break;
+								case 3:	data_invfcst[AO].s4 = planqty - sallocqty; break;
+								case 4:	data_invfcst[AO].s5 = planqty - sallocqty; break;
+								case 5:	data_invfcst[AO].s6 = planqty - sallocqty; break;
+								case 6:	data_invfcst[AO].s7 = planqty - sallocqty; break;
+								case 7:	data_invfcst[AO].s8 = planqty - sallocqty; break;
+							}
+						}
+
+					}
+
+				});
+
+				webix.ajax().sync().get("http://localhost/prodplan/php/getLocalForecast.php", param, function(jsonresp,invfcsttable){
+					var rsArr = JSON.parse(jsonresp);
+
+					for (var x=0; x < rsArr.length; x++){
+						var fcstobj = rsArr[x];
+						var idx = period2seasonIndex(fcstobj.period);
+						var planqty = Math.round(fcstobj.splanqty);
+						var allocqty = Math.round(fcstobj.salloc);
+						var shpqty = Math.round(fcstobj.sshp);
+						var sallocqty = allocqty + shpqty;
+						
+						//handle FI
+						switch (idx){
+							case 0: data_invfcst[FI].s1 = planqty; break;
+							case 1:	data_invfcst[FI].s2 = planqty; break;
+							case 2:	data_invfcst[FI].s3 = planqty; break;
+							case 3:	data_invfcst[FI].s4 = planqty; break;
+							case 4:	data_invfcst[FI].s5 = planqty; break;
+							case 5:	data_invfcst[FI].s6 = planqty; break;
+							case 6:	data_invfcst[FI].s7 = planqty; break;
+							case 7:	data_invfcst[FI].s8 = planqty; break;
+						}
+
+						//handle AI
+						if (planqty > sallocqty){
+							switch (idx){
+								case 0: data_invfcst[AI].s1 = planqty - sallocqty; break;
+								case 1:	data_invfcst[AI].s2 = planqty - sallocqty; break;
+								case 2:	data_invfcst[AI].s3 = planqty - sallocqty; break;
+								case 3:	data_invfcst[AI].s4 = planqty - sallocqty; break;
+								case 4:	data_invfcst[AI].s5 = planqty - sallocqty; break;
+								case 5:	data_invfcst[AI].s6 = planqty - sallocqty; break;
+								case 6:	data_invfcst[AI].s7 = planqty - sallocqty; break;
+								case 7:	data_invfcst[AI].s8 = planqty - sallocqty; break;
+							}
+						}	
+
+					}
+
+				});
+				
+				//update net shortage
+				data_invfcst[NET].s1 = (data_invfcst[AI].s1 + data_invfcst[AO].s1) * -1;
+				data_invfcst[NET].s2 = (data_invfcst[AI].s2 + data_invfcst[AO].s2) * -1;
+				data_invfcst[NET].s3 = (data_invfcst[AI].s3 + data_invfcst[AO].s3) * -1;
+				data_invfcst[NET].s4 = (data_invfcst[AI].s4 + data_invfcst[AO].s4) * -1;
+				data_invfcst[NET].s5 = (data_invfcst[AI].s5 + data_invfcst[AO].s5) * -1;
+				data_invfcst[NET].s6 = (data_invfcst[AI].s6 + data_invfcst[AO].s6) * -1;
+				data_invfcst[NET].s7 = (data_invfcst[AI].s7 + data_invfcst[AO].s7) * -1;
+				data_invfcst[NET].s8 = (data_invfcst[AI].s8 + data_invfcst[AO].s8) * -1;
+
+				//sub total
+				data_invfcst[AI].total = data_invfcst[AI].s1 + data_invfcst[AI].s2+ data_invfcst[AI].s3+ data_invfcst[AI].s4+ data_invfcst[AI].s5+ data_invfcst[AI].s6+ data_invfcst[AI].s7+ data_invfcst[AI].s8;
+				data_invfcst[AO].total = data_invfcst[AO].s1 + data_invfcst[AO].s2+ data_invfcst[AO].s3+ data_invfcst[AO].s4+ data_invfcst[AO].s5+ data_invfcst[AO].s6+ data_invfcst[AO].s7+ data_invfcst[AO].s8;
+				data_invfcst[FI].total = data_invfcst[FI].s1 + data_invfcst[FI].s2+ data_invfcst[FI].s3+ data_invfcst[FI].s4+ data_invfcst[FI].s5+ data_invfcst[FI].s6+ data_invfcst[FI].s7+ data_invfcst[FI].s8;
+				data_invfcst[FO].total = data_invfcst[FO].s1 + data_invfcst[FO].s2+ data_invfcst[FO].s3+ data_invfcst[FO].s4+ data_invfcst[FO].s5+ data_invfcst[FO].s6+ data_invfcst[FO].s7+ data_invfcst[FO].s8;
+				data_invfcst[NET].total = data_invfcst[NET].s1 + data_invfcst[NET].s2+ data_invfcst[NET].s3+ data_invfcst[NET].s4+ data_invfcst[NET].s5+ data_invfcst[NET].s6+ data_invfcst[NET].s7+ data_invfcst[NET].s8;
+
+				$$('ID_invfcsttable').refresh(); 
+
+			}
+
+
+			function updateFcstTable(chosen_pcode){
+				$$('ID_fcsttable').clearAll();
+				$$('ID_fcsttable').load("http://localhost/prodplan/php/getVegeSeedForecast.php?pcode="+chosen_pcode);
+			}
+			function updateProdPlanTable(chosen_pcode){
+				$$('ID_prodplantable').clearAll();
+				$$('ID_prodplantable').load("http://localhost/prodplan/php/getVegeSeedProdPlan.php?pcode="+chosen_pcode);
+			}
+			function updateAchTable(chosen_pcode){
+				$$('ID_achtable').clearAll();
+				$$('ID_achtable').load("http://localhost/prodplan/php/getVegeSeedAchrate.php?pcode="+chosen_pcode);
+
+			}
+
+			
+
+			function equals(a,b){
+				a = a.toString().toLowerCase();
+				return a.indexOf(b) !== -1;
+			}
+
+			plnpcodelist.filterByAll=function(){
+				//get fitler values
+				var pcname = this.getFilter("pcname").value.toString();
+				var pcode = this.getFilter("pcode").value.toString();
+				//unfilter for empty search text
+				if (!pcname && !pcode) return this.filter();
+
+				//filter using or logic
+				this.filter(function(obj){
+					if (equals(obj.pcode, pcode)) return true;
+					if (equals(obj.pcname, pcname)) return true;
+					return false;
+				});
+			};
+
+			
+			
+
+		</script>
+	</body>
+</html>

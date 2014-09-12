@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Loading from DB</title>
+		<link rel="stylesheet" href="css/webix.css" type="text/css" charset="utf-8">
+		<script src="js/webix.js" type="text/javascript" charset="utf-8"></script>
+		
+	<body>
+		<div id='layout_div' ></div>
+
+		<div id="testB"></div>
+		<div id="testC"></div>
+		
+		<script type="text/javascript" charset="utf-8">
+		var plnpcodelist = {
+			rows:[
+	            {
+	                height: 35,
+	                view:"toolbar",
+	                elements:[
+	                    {view:"text", id:"list_input",label:"預購品項",css:"fltr", labelWidth:170}
+	                ]
+	            },
+
+				{
+					height:200,
+					view:"list",
+					id:"list",
+					template:"#pcode#  #pcname#",
+
+					select:true,
+
+					on:{
+						onSelectChange:function(){
+							//var text = "SelectedID: "+grid.getSelectedId(true).join();
+							
+							var rowId = this.getSelectedId().row;
+							var item = this.getItem(rowId);
+
+							document.getElementById('testB').innerHTML = rowId + " :: " + item["pcode"]+ " :: " + item["pcname"];
+							
+						},
+						onAfterLoad:function(){
+							document.getElementById('testC').innerHTML = this.count();	
+						}
+					},
+					url:"http://localhost/prodplan/php/pln_pcodelist.php"
+				}
+			]
+
+		};
+
+		var ui ={
+			container:"layout_div",
+			rows:[
+				{type:"header", template:"My Example"},
+				{type:"space", 
+					cols:[plnpcodelist,
+						  {template:"test2"}
+					]},
+				{type:"space"}
+			]
+		};
+
+		webix.ready(function(){
+			webix.ui(ui);
+		});
+
+	    $$("list_input").attachEvent("onTimedKeyPress",function(){
+	        var value = this.getValue().toLowerCase();
+	        $$(list).filter(function(obj){
+	            return obj.title.toLowerCase().indexOf(value)==0;
+	        })
+	    });
+
+		</script>
+	</body>
+</html>
