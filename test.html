@@ -6,6 +6,12 @@
 		<link href="skins/air.css" rel="stylesheet" type="text/css">
 		<script src="js/webix.js" type="text/javascript" charset="utf-8"></script>
 		<script src="js/util.js" type="text/javascript" charset="utf-8"></script>
+
+		<script src="js/PanelPlanPcode.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/PanelProdPlan.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/PanelProdFcst.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/PanelProdAchieve.js" type="text/javascript" charset="utf-8"></script>
+
 	<style>
 	    .highlight{
 	        background-color:#FFFFC8;
@@ -29,7 +35,7 @@
 			    else{
 			    	return {"text-align":"right"};
 			    }
-			    return value;				
+			    return value;	
 			}
 
 			var data_inv = [
@@ -77,22 +83,8 @@
 				data: data_invfcst
 			};
 
-			var plnpcodelist = {
-				rows:[
-					{
-						view:"datatable",
-						columns:[
-							{ id:"pcode",	header:["PCODE", {content:"textFilter"}], sort:"int"},
-							{ id:"pcname",	header:["Name",  {content:"textFilter"}], sort:"string"}
-						],
-						autowidth:true,
-						navigation:true,
-						select:"row",
-
-						on:{
-							onSelectChange:function(){
+			var plnpcodelistOnSelectChange = function(){
 								//var text = "SelectedID: "+grid.getSelectedId(true).join();
-								
 								var rowId = this.getSelectedId().row;
 								var item = this.getItem(rowId);
 
@@ -102,21 +94,10 @@
 								updateProdPlanTable(item["pcode"]);
 								updateFcstTable(item["pcode"]);
 								updateAchTable(item["pcode"]);
-							},
-							onAfterLoad:function(){
-								//document.getElementById('testC').innerHTML = this.count();	
-							},
-					        onBeforeLoad:function(){
-					            this.showOverlay("資料讀取中...");
-					        },
-					        onAfterLoad:function(){
-					            this.hideOverlay();
-					        }							
-						},
-						url:"http://localhost/prodplan/php/pln_pcodelist.php"
-					}
-				]
-			};
+							};
+
+			var plnpcodelist = new PanelPlanPcode(plnpcodelistOnSelectChange); //abstract class
+
 
 			var invtable ={
 				id:"ID_invtable",
@@ -130,138 +111,22 @@
 				data: data_inv
 			};
 
-			var prodplantable = {
-				id:"ID_prodplantable",
-				view: "datatable",
-				editable:true,
-				editaction:"dblclick",
-				columns:[
-					{id:"plannum", header:"計畫編號", sort:"string"},
-					{id:"prodnum", header:"生產編", sort:"string"},
-					{id:"seednum", header:"原種", sort:"string"},
-					{id:"pcode", width: 70, header:"電編", sort:"string"},
-					{id:"pcname", header:"品名", sort:"string"},
-					{id:"yq", width: 80,header:"生效季", sort:"int"},
-					{id:"estdyq", width: 80,header:"交期季", sort:"int"},
-					{id:"site", width: 70, header:"產地", sort:"string"},
-					{id:"qty", width: 80,header:"數量KG", sort:"int",css:{"text-align":"right"}},
-					{id:"landsize", width: 80, header:"面積", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
-					{id:"curr", width: 50,header:"幣別", sort:"string"},
-					{id:"ref_cost", width: 80, header:"參考價", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
-					{id:"report1mon", width: 80,header:"月報", sort:"int", editor:"text",css:{"text-align":"center"}},
-					{id:"report1qty", width: 80,header:"報數量", sort:"int", editor:"text",css:{"text-align":"right"}},
-					{id:"report1ym", width: 80,header:"交期月", sort:"int", editor:"text",css:{"text-align":"center"}},
-					{id:"note", width: 480,header:"備註", editor:"popup"}
-				],
-				
-				//autoConfig:true,
-			    on:{
-			        onBeforeLoad:function(){
-			            this.showOverlay("資料讀取中...");
-			        },
-			        onAfterLoad:function(){
-			            this.hideOverlay();
-			        },
-			        onAfterEditStop:function(state, editor, ignoreUpdate){
-					    if(state.value != state.old){
-					    	var item = this.getItem(this.getSelectedId().row);		
-					        //webix.message("Cell value was changed to " + state.value);
-							webix.message("item " + "=" + item["plannum"]);
-							var param = {plannum:item["plannum"],
-										report1mon:item["report1mon"],
-										report1qty:item["report1qty"],
-										report1ym:item["report1ym"],
-										note:item["note"]
-										};
-							webix.ajax().sync().get("http://localhost/prodplan/php/updateVegeSeedProdPlanReport.php", param, function(response){
-								webix.message(response);
-							});							
-					    } 
-			        }
-			    },				
-				//autoconfig:true, //using input data field as column names
-				navigation:true,
-				select:"row",				
-				url:"http://localhost/prodplan/php/getVegeSeedProdPlan.php"
-			};
+			var prodplantable = new PanelProdPlan();
+			var prodfcsttable = new PanelProdFcst();
+			var prodachtable = new PanelProdAchieve();
 
-			var fcsttable = {
-				id:"ID_fcsttable",
-				view: "datatable",
-				
-				columns:[
-					{id:"fcstid", width: 60,header:"編號", sort:"int"},
-					{id:"agentid", width: 80,header:"需求端", sort:"int"},
-					{id:"pcode", width: 70, header:"電編", sort:"string"},
-					{id:"pcname", header:"品名", sort:"string"},
-					{id:"yq", width: 80, header:"季", sort:"int"},
-					{id:"planqty", width: 80, header:"數量", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
-					{id:"class", width: 50,header:"類季", sort:"string"},
-					{id:"state", width: 70, header:"狀態", sort:"string"},
-					{id:"uprice", width: 80, header:"參考價", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
-					{id:"totalamt", width: 80, header:"總額", sort:"int",css:{"text-align":"right"}},
-					{id:"alloc", width: 80, header:"分配", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}},
-					{id:"accushp", width: 80, header:"累計出", sort:"int", format:webix.i18n.numberFormat,css:{"text-align":"right"}}
-				],
-				
-				//autoConfig:true,
-			    on:{
-			        onBeforeLoad:function(){
-			            this.showOverlay("資料讀取中...");
-			        },
-			        onAfterLoad:function(){
-			            this.hideOverlay();
-			        }
-			    },				
-				//autoconfig:true, //using input data field as column names
-				navigation:true,
-				select:"row",				
-				url:"http://localhost/prodplan/php/getVegeSeedForecast.php"
-			};
-
-			var achtable = {
-				id:"ID_achtable",
-				view: "datatable",
-				
-				columns:[
-					{id:"pcode", width: 60,header:"電編", sort:"int"},
-					{id:"site", width: 80,header:"產地", sort:"string"},
-					{id:"yr", width: 70, header:"年度", sort:"int"},
-					{id:"sbkg", width: 100,header:"當年進貨Kg", sort:"int", css:{"text-align":"right"}},
-					{id:"pqty", width: 100, header:"計畫生產Kg", sort:"int", css:{"text-align":"right"}},
-					{id:"achrate", width: 80, header:"達成率%", sort:"int", css:{"text-align":"right"}}
-
-				],
-				
-				//autoConfig:true,
-			    on:{
-			        onBeforeLoad:function(){
-			            this.showOverlay("資料讀取中...");
-			        },
-			        onAfterLoad:function(){
-			            this.hideOverlay();
-			        }
-	        
-			    },				
-				//autoconfig:true, //using input data field as column names
-				navigation:true,
-				select:"row",				
-				url:"http://localhost/prodplan/php/getVegeSeedAchrate.php"
-			};
-			
+			//!!!this is the button table panel; putting all sub panels
 			var tabpanel = {
 				view:"tabview",
     			animate:false,
     			cells:[
     				{header:"生產計劃", value:1, cols:[prodplantable]},
-    				{header:"預購明細", value:2,cols:[fcsttable]},
-    				{header:"歷年產地達成率", value:3,cols:[achtable]}
+    				{header:"預購明細", value:2,cols:[prodfcsttable]},
+    				{header:"歷年產地達成率", value:3,cols:[prodachtable]}
     			]
-  
+  			};
 
-			};
-
-
+			//!!! MAIN UI this is where all panels are put together
 			var ui ={
 				container:"layout_div",
 				rows:[
@@ -288,7 +153,7 @@
 				data_inv[AVA].std = 0;
 				data_inv[AVA].nstd = 0;
 				var param = {pcode:chosen_pcode};
-				webix.ajax().sync().get("http://localhost/prodplan/php/getVegeSeedInventory.php", param, function(jsonresp){
+				webix.ajax().sync().get("php/getVegeSeedInventory.php", param, function(jsonresp){
 					var rsArr = JSON.parse(jsonresp);
 					for (var x=0; x < rsArr.length; x++){
 						var fcstobj = rsArr[x];
@@ -322,7 +187,7 @@
 				}
 
 				var param = {pcode:chosen_pcode};
-				webix.ajax().sync().get("http://localhost/prodplan/php/getDomesticForecast.php", param, function(jsonresp){
+				webix.ajax().sync().get("php/getDomesticForecast.php", param, function(jsonresp){
 					var rsArr = JSON.parse(jsonresp);
 					//webix.message(rsArr[2].period);
 					for (var x=0; x < rsArr.length; x++){
@@ -363,7 +228,7 @@
 
 				});
 
-				webix.ajax().sync().get("http://localhost/prodplan/php/getLocalForecast.php", param, function(jsonresp,invfcsttable){
+				webix.ajax().sync().get("php/getLocalForecast.php", param, function(jsonresp,invfcsttable){
 					var rsArr = JSON.parse(jsonresp);
 
 					for (var x=0; x < rsArr.length; x++){
@@ -424,46 +289,6 @@
 				$$('ID_invfcsttable').refresh(); 
 
 			}
-
-
-			function updateFcstTable(chosen_pcode){
-				$$('ID_fcsttable').clearAll();
-				$$('ID_fcsttable').load("http://localhost/prodplan/php/getVegeSeedForecast.php?pcode="+chosen_pcode);
-			}
-			function updateProdPlanTable(chosen_pcode){
-				$$('ID_prodplantable').clearAll();
-				$$('ID_prodplantable').load("http://localhost/prodplan/php/getVegeSeedProdPlan.php?pcode="+chosen_pcode);
-			}
-			function updateAchTable(chosen_pcode){
-				$$('ID_achtable').clearAll();
-				$$('ID_achtable').load("http://localhost/prodplan/php/getVegeSeedAchrate.php?pcode="+chosen_pcode);
-
-			}
-
-			
-
-			function equals(a,b){
-				a = a.toString().toLowerCase();
-				return a.indexOf(b) !== -1;
-			}
-
-			plnpcodelist.filterByAll=function(){
-				//get fitler values
-				var pcname = this.getFilter("pcname").value.toString();
-				var pcode = this.getFilter("pcode").value.toString();
-				//unfilter for empty search text
-				if (!pcname && !pcode) return this.filter();
-
-				//filter using or logic
-				this.filter(function(obj){
-					if (equals(obj.pcode, pcode)) return true;
-					if (equals(obj.pcname, pcname)) return true;
-					return false;
-				});
-			};
-
-			
-			
 
 		</script>
 	</body>

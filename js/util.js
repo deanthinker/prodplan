@@ -85,3 +85,8 @@ function getSeasonArr(totalSeason){
 	}
 	return headerArr;
 }
+
+function equals(a,b){
+	a = a.toString().toLowerCase();
+	return a.indexOf(b) !== -1;
+}

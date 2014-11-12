@@ -1,8 +1,6 @@
 <?php
-die();
 include_once("util.php");
 include_once("configdb.php");
-
 
 $return_arr = array();
 $pcode = "";
@@ -42,10 +40,6 @@ if(isset($_GET["note"]) ){
 	else
 		$field4 = ", note=null";
 
-}
-else{
-	echo "-1"; //return false
-	die();
 }
 
 $sql = "UPDATE pro130 SET " . $field1 . $field2 . $field3 . $field4 . " WHERE plannum='" . $plannum . "' ";

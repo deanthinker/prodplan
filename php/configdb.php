@@ -3,7 +3,7 @@
 	
 $mysql_hostname = "localhost";
 $mysql_user = "root";
-$mysql_password = "1234";
+$mysql_password = "1qaz2wsx";
 $mysql_database = "service";
 $dbtype = "MySQL";
 
@@ -16,7 +16,7 @@ $mysql_database = "Service";
 
 
 header('Content-Type: text/html; charset=utf-8');
-$conn=mysql_connect("localhost","root","1234");
+$conn=mysql_connect("localhost",$mysql_user, $mysql_password);
 
 if( ! $conn){
 	die("can't connect to MySQL server:" . mysql_error());
